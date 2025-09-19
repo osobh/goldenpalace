@@ -1,0 +1,107 @@
+.typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--text-muted, #6b7280);
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+.typing-indicator.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.typing-indicator.fade-out {
+  animation: fadeOut 0.3s ease-in-out;
+  opacity: 0;
+  transform: translateY(5px);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+
+.typing-text {
+  margin-right: 8px;
+}
+
+.dots-animation {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  background-color: currentColor;
+  border-radius: 50%;
+  animation: dotPulse 1.4s ease-in-out infinite;
+}
+
+.dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotPulse {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* RTL Support */
+[dir="rtl"] .typing-indicator {
+  direction: rtl;
+}
+
+[dir="rtl"] .typing-text {
+  margin-right: 0;
+  margin-left: 8px;
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .typing-indicator,
+  .dot {
+    animation: none;
+    transition: none;
+  }
+
+  .typing-indicator.fade-in,
+  .typing-indicator.fade-out {
+    transition: opacity 0.1s;
+  }
+}

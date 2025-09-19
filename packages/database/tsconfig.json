@@ -1,0 +1,12 @@
+{
+  "extends": "@golden-palace/config/typescript/base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*", "prisma/**/*"],
+  "exclude": ["dist", "node_modules"]
+}

@@ -1,20 +1,35 @@
 {
-  "name": "golden-palace-turbo",
+  "name": "golden-palace",
+  "version": "0.1.0",
   "private": true,
+  "description": "P2P Financial Collaboration Platform",
+  "author": "Golden Palace Team",
+  "license": "MIT",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "lint:fix": "turbo run lint:fix",
+    "format": "biome format --write .",
+    "format:check": "biome check .",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean",
+    "db:generate": "turbo run db:generate",
+    "db:push": "turbo run db:push",
+    "db:migrate": "turbo run db:migrate",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up",
+    "docker:down": "docker-compose -f docker-compose.dev.yml down"
   },
   "devDependencies": {
-    "prettier": "^3.6.2",
+    "@biomejs/biome": "^1.9.4",
     "turbo": "^2.5.6",
-    "typescript": "5.9.2"
+    "typescript": "^5.7.2"
   },
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@10.13.1",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
   }
 }

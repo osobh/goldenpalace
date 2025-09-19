@@ -1,0 +1,45 @@
+{
+  "name": "@golden-palace/database",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Golden Palace Database Layer with Prisma",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "generate": "prisma generate",
+    "push": "prisma db push",
+    "migrate": "prisma migrate dev",
+    "studio": "prisma studio",
+    "seed": "tsx prisma/seed.ts",
+    "reset": "prisma migrate reset",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.16.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@golden-palace/config": "workspace:*",
+    "@types/node": "^22.15.3",
+    "prisma": "^6.16.0",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    }
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
