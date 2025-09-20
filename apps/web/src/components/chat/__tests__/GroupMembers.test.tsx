@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { GroupMembers } from '../GroupMembers';
 import { useAuthStore } from '../../../stores/authStore';
 import type { GroupMember } from '../../../services/websocket.service';
@@ -615,11 +615,14 @@ describe('GroupMembers', () => {
         />
       );
 
-      const memberElement = screen.getByText('trader123');
+      // Get the member element from the list, not the dialog
+      const memberElements = screen.getAllByText('trader123');
+      const memberElement = memberElements[0]; // First occurrence is in the list
       fireEvent.click(memberElement);
 
       expect(screen.getByRole('dialog', { name: 'Member profile' })).toBeInTheDocument();
-      expect(screen.getByText('trader123')).toBeInTheDocument();
+      // Now trader123 appears twice - in list and dialog
+      expect(screen.getAllByText('trader123')).toHaveLength(2);
       expect(screen.getByText('Member since Nov 20, 2023')).toBeInTheDocument();
     });
 
@@ -754,6 +757,8 @@ describe('GroupMembers', () => {
     });
 
     it('should show animation for new members', () => {
+      vi.useFakeTimers();
+
       const { rerender } = render(
         <GroupMembers
           members={mockMembers.slice(0, 3)}
@@ -762,19 +767,33 @@ describe('GroupMembers', () => {
         />
       );
 
-      rerender(
-        <GroupMembers
-          members={mockMembers}
-          onMemberAction={mockOnMemberAction}
-          groupId="group-1"
-        />
-      );
+      act(() => {
+        rerender(
+          <GroupMembers
+            members={mockMembers}
+            onMemberAction={mockOnMemberAction}
+            groupId="group-1"
+          />
+        );
+      });
 
+      // Check immediately after render for animation class
       const newMemberElement = screen.getByText('investor456').closest('[data-member-id]');
       expect(newMemberElement).toHaveClass('member-entering');
+
+      // Advance time to verify animation class is removed
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+
+      expect(newMemberElement).not.toHaveClass('member-entering');
+
+      vi.useRealTimers();
     });
 
     it('should show animation for removed members', () => {
+      vi.useFakeTimers();
+
       const { rerender } = render(
         <GroupMembers
           members={mockMembers}
@@ -783,19 +802,28 @@ describe('GroupMembers', () => {
         />
       );
 
-      rerender(
-        <GroupMembers
-          members={mockMembers.slice(0, 3)}
-          onMemberAction={mockOnMemberAction}
-          groupId="group-1"
-        />
-      );
+      act(() => {
+        rerender(
+          <GroupMembers
+            members={mockMembers.slice(0, 3)}
+            onMemberAction={mockOnMemberAction}
+            groupId="group-1"
+          />
+        );
+      });
 
       // Member should still be in DOM briefly with exit animation
-      const removedMemberElement = screen.queryByText('investor456')?.closest('[data-member-id]');
-      if (removedMemberElement) {
-        expect(removedMemberElement).toHaveClass('member-exiting');
-      }
+      const removedMemberElement = screen.getByText('investor456').closest('[data-member-id]');
+      expect(removedMemberElement).toHaveClass('member-exiting');
+
+      // Advance time to verify member is removed
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+
+      expect(screen.queryByText('investor456')).not.toBeInTheDocument();
+
+      vi.useRealTimers();
     });
   });
 });

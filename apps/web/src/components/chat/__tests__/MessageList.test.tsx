@@ -520,4 +520,162 @@ describe('MessageList', () => {
       expect(reactionButton).toBeInTheDocument();
     });
   });
+
+  describe('virtual scrolling', () => {
+    it('should only render visible messages for performance', () => {
+      // Create 1000 messages for testing
+      const manyMessages = Array.from({ length: 1000 }, (_, i) => ({
+        id: `msg-${i}`,
+        userId: i % 2 === 0 ? 'user-1' : 'user-2',
+        username: i % 2 === 0 ? 'currentuser' : 'otheruser',
+        content: `Message ${i}`,
+        createdAt: new Date(2023, 11, 1, 10, i).toISOString(),
+        reactions: [],
+        readBy: [],
+      }));
+
+      const { container } = render(<MessageList messages={manyMessages} />);
+
+      // Check that not all messages are rendered in the DOM
+      const messageElements = container.querySelectorAll('[data-message-id]');
+      expect(messageElements.length).toBeLessThan(100); // Should use virtual scrolling
+      expect(messageElements.length).toBeGreaterThan(0); // But some should be visible
+    });
+
+    it('should render more messages as user scrolls', async () => {
+      const manyMessages = Array.from({ length: 100 }, (_, i) => ({
+        id: `msg-${i}`,
+        userId: 'user-1',
+        username: 'testuser',
+        content: `Message ${i}`,
+        createdAt: new Date(2023, 11, 1, 10, i).toISOString(),
+        reactions: [],
+        readBy: [],
+      }));
+
+      const { container } = render(<MessageList messages={manyMessages} />);
+
+      const scrollContainer = container.querySelector('.message-list-scroll-container');
+      expect(scrollContainer).toBeInTheDocument();
+
+      // Initially should show limited messages
+      let visibleMessages = container.querySelectorAll('[data-message-id]');
+      const initialCount = visibleMessages.length;
+
+      // Simulate scroll
+      fireEvent.scroll(scrollContainer!, { target: { scrollTop: 500 } });
+
+      await waitFor(() => {
+        visibleMessages = container.querySelectorAll('[data-message-id]');
+        expect(visibleMessages.length).toBeGreaterThanOrEqual(initialCount);
+      });
+    });
+
+    it('should maintain scroll position when new messages arrive', async () => {
+      const initialMessages = Array.from({ length: 50 }, (_, i) => ({
+        id: `msg-${i}`,
+        userId: 'user-1',
+        username: 'testuser',
+        content: `Message ${i}`,
+        createdAt: new Date(2023, 11, 1, 10, i).toISOString(),
+        reactions: [],
+        readBy: [],
+      }));
+
+      const { container, rerender } = render(<MessageList messages={initialMessages} />);
+
+      const scrollContainer = container.querySelector('.message-list-scroll-container');
+
+      // Scroll to middle
+      fireEvent.scroll(scrollContainer!, { target: { scrollTop: 300 } });
+      const scrollPosBefore = scrollContainer!.scrollTop;
+
+      // Add new message at the end
+      const newMessage = {
+        id: 'msg-new',
+        userId: 'user-2',
+        username: 'otheruser',
+        content: 'New message',
+        createdAt: new Date(2023, 11, 1, 10, 51).toISOString(),
+        reactions: [],
+        readBy: [],
+      };
+
+      rerender(<MessageList messages={[...initialMessages, newMessage]} />);
+
+      // Scroll position should be maintained
+      await waitFor(() => {
+        expect(scrollContainer!.scrollTop).toBe(scrollPosBefore);
+      });
+    });
+
+    it('should handle dynamic message height correctly', () => {
+      const messagesWithVariableHeight = [
+        {
+          id: 'msg-1',
+          userId: 'user-1',
+          username: 'testuser',
+          content: 'Short',
+          createdAt: '2023-12-01T10:00:00Z',
+          reactions: [],
+          readBy: [],
+        },
+        {
+          id: 'msg-2',
+          userId: 'user-1',
+          username: 'testuser',
+          content: 'This is a much longer message that will wrap to multiple lines and take up more vertical space in the message list component',
+          createdAt: '2023-12-01T10:01:00Z',
+          reactions: [],
+          readBy: [],
+        },
+        {
+          id: 'msg-3',
+          userId: 'user-1',
+          username: 'testuser',
+          content: 'Another short one',
+          createdAt: '2023-12-01T10:02:00Z',
+          reactions: [],
+          readBy: [],
+          attachments: [{
+            id: 'att-1',
+            name: 'image.png',
+            url: '/image.png',
+            type: 'image',
+            size: 1024,
+          }],
+        },
+      ];
+
+      const { container } = render(<MessageList messages={messagesWithVariableHeight} />);
+
+      // All visible messages should be rendered despite different heights
+      const messageElements = container.querySelectorAll('[data-message-id]');
+      expect(messageElements.length).toBeGreaterThan(0);
+    });
+
+    it('should provide smooth scrolling performance metrics', () => {
+      const manyMessages = Array.from({ length: 500 }, (_, i) => ({
+        id: `msg-${i}`,
+        userId: 'user-1',
+        username: 'testuser',
+        content: `Message ${i}`,
+        createdAt: new Date(2023, 11, 1, 10, i).toISOString(),
+        reactions: [],
+        readBy: [],
+      }));
+
+      const { container } = render(<MessageList messages={manyMessages} />);
+
+      const scrollContainer = container.querySelector('.message-list-scroll-container');
+
+      // Measure initial render performance
+      const startTime = performance.now();
+      fireEvent.scroll(scrollContainer!, { target: { scrollTop: 1000 } });
+      const scrollTime = performance.now() - startTime;
+
+      // Scrolling should be performant (under 100ms for response)
+      expect(scrollTime).toBeLessThan(100);
+    });
+  });
 });

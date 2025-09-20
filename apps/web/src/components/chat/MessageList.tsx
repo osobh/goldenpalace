@@ -10,6 +10,11 @@ interface MessageListProps {
   loadingPortfolioId?: string;
 }
 
+// Virtual scrolling configuration
+const VISIBLE_BUFFER = 5; // Extra messages to render outside viewport
+const MESSAGE_HEIGHT_ESTIMATE = 80; // Estimated height for initial calculations
+const SCROLL_DEBOUNCE_MS = 50;
+
 const REACTION_EMOJIS = {
   '👍': ThumbsUp,
   '❤️': Heart,
@@ -27,10 +32,18 @@ export function MessageList({ messages, loadingPortfolioId }: MessageListProps) 
   const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
   const [processedMessages, setProcessedMessages] = useState<ChatMessage[]>([]);
 
+  // Virtual scrolling state
+  const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 });
+  const [scrollTop, setScrollTop] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(800);
+
   const messageListRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const messageHeights = useRef<Map<string, number>>(new Map());
+  const scrollDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Group consecutive messages from the same user
   const groupedMessages = useMemo(() => {
@@ -65,16 +78,115 @@ export function MessageList({ messages, loadingPortfolioId }: MessageListProps) 
     return groups;
   }, [messages]);
 
-  // Virtual scrolling for large message lists
-  useEffect(() => {
+  // Calculate visible messages for virtual scrolling
+  const visibleMessages = useMemo(() => {
+    // For large lists, only render visible portion
     if (messages.length > 100) {
-      // Only render visible messages for performance (limit to 50 for virtual scrolling)
-      const visibleMessages = messages.slice(-50);
-      setProcessedMessages(visibleMessages);
-    } else {
-      setProcessedMessages(messages);
+      return messages.slice(visibleRange.start, visibleRange.end);
     }
+    return messages;
+  }, [messages, visibleRange]);
+
+  // Calculate total height for scroll container
+  const totalHeight = useMemo(() => {
+    if (messages.length <= 100) return 'auto';
+
+    // Calculate actual heights or use estimates
+    let height = 0;
+    messages.forEach(msg => {
+      const actualHeight = messageHeights.current.get(msg.id);
+      height += actualHeight || MESSAGE_HEIGHT_ESTIMATE;
+    });
+    return height;
   }, [messages]);
+
+  // Calculate offset for visible messages
+  const offsetTop = useMemo(() => {
+    if (messages.length <= 100) return 0;
+
+    let offset = 0;
+    for (let i = 0; i < visibleRange.start; i++) {
+      const msg = messages[i];
+      const height = messageHeights.current.get(msg.id) || MESSAGE_HEIGHT_ESTIMATE;
+      offset += height;
+    }
+    return offset;
+  }, [messages, visibleRange]);
+
+  // Track message heights for accurate scrolling
+  const measureMessage = useCallback((messageId: string, element: HTMLDivElement | null) => {
+    if (element && !messageHeights.current.has(messageId)) {
+      const height = element.offsetHeight;
+      messageHeights.current.set(messageId, height);
+    }
+  }, []);
+
+  // Calculate visible range based on scroll
+  const calculateVisibleRange = useCallback(() => {
+    if (!scrollContainerRef.current || messages.length <= 100) return;
+
+    const container = scrollContainerRef.current;
+    const scrollTop = container.scrollTop;
+    const containerHeight = container.clientHeight;
+
+    // Find first visible message
+    let accumulatedHeight = 0;
+    let startIndex = 0;
+    for (let i = 0; i < messages.length; i++) {
+      const height = messageHeights.current.get(messages[i].id) || MESSAGE_HEIGHT_ESTIMATE;
+      if (accumulatedHeight + height > scrollTop) {
+        startIndex = Math.max(0, i - VISIBLE_BUFFER);
+        break;
+      }
+      accumulatedHeight += height;
+    }
+
+    // Find last visible message
+    let endIndex = startIndex;
+    let visibleHeight = 0;
+    for (let i = startIndex; i < messages.length; i++) {
+      const height = messageHeights.current.get(messages[i].id) || MESSAGE_HEIGHT_ESTIMATE;
+      visibleHeight += height;
+      if (visibleHeight > containerHeight + MESSAGE_HEIGHT_ESTIMATE * VISIBLE_BUFFER) {
+        endIndex = i + VISIBLE_BUFFER;
+        break;
+      }
+    }
+
+    setVisibleRange({
+      start: startIndex,
+      end: Math.min(endIndex, messages.length)
+    });
+    setScrollTop(scrollTop);
+    setContainerHeight(containerHeight);
+  }, [messages]);
+
+  // Handle scroll events
+  const handleScroll = useCallback(() => {
+    if (scrollDebounceRef.current) {
+      clearTimeout(scrollDebounceRef.current);
+    }
+
+    scrollDebounceRef.current = setTimeout(() => {
+      calculateVisibleRange();
+    }, SCROLL_DEBOUNCE_MS);
+  }, [calculateVisibleRange]);
+
+  // Set up scroll listener
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener('scroll', handleScroll);
+    calculateVisibleRange();
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (scrollDebounceRef.current) {
+        clearTimeout(scrollDebounceRef.current);
+      }
+    };
+  }, [handleScroll, calculateVisibleRange]);
 
   // Set up Intersection Observer for read receipts
   useEffect(() => {
@@ -225,12 +337,31 @@ export function MessageList({ messages, loadingPortfolioId }: MessageListProps) 
 
   return (
     <div
-      ref={messageListRef}
-      className="message-list"
-      role="log"
-      aria-label="Chat messages"
+      ref={scrollContainerRef}
+      className="message-list-scroll-container"
+      style={{
+        height: '100%',
+        overflowY: 'auto',
+        position: 'relative'
+      }}
     >
-      {processedMessages.map((message, index) => {
+      <div
+        ref={messageListRef}
+        className="message-list"
+        role="log"
+        aria-label="Chat messages"
+        style={{
+          minHeight: typeof totalHeight === 'number' ? `${totalHeight}px` : totalHeight,
+          position: 'relative'
+        }}
+      >
+        {/* Spacer for virtual scrolling */}
+        {messages.length > 100 && (
+          <div style={{ height: offsetTop }} aria-hidden="true" />
+        )}
+
+        {/* Render visible messages */}
+        {visibleMessages.map((message, index) => {
         const isOwnMessage = message.userId === user?.id;
         const isSystemMessage = message.type === 'SYSTEM';
         const showDateSep = shouldShowDateSeparator(message, index);
@@ -254,8 +385,11 @@ export function MessageList({ messages, loadingPortfolioId }: MessageListProps) 
 
             <div
               ref={(el) => {
-                if (el) messageRefs.current.set(message.id, el);
-                if (index === processedMessages.length - 1) {
+                if (el) {
+                  messageRefs.current.set(message.id, el);
+                  measureMessage(message.id, el);
+                }
+                if (index === visibleMessages.length - 1) {
                   lastMessageRef.current = el;
                 }
               }}
@@ -431,7 +565,7 @@ export function MessageList({ messages, loadingPortfolioId }: MessageListProps) 
                   </div>
 
                   {/* Screen reader announcement for new messages */}
-                  {index === processedMessages.length - 1 && !isOwnMessage && (
+                  {index === visibleMessages.length - 1 && !isOwnMessage && (
                     <div
                       className="sr-only"
                       role="status"
@@ -445,6 +579,7 @@ export function MessageList({ messages, loadingPortfolioId }: MessageListProps) 
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

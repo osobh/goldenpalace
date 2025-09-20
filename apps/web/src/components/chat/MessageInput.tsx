@@ -19,7 +19,7 @@ interface MessageInputProps {
   showFormatting?: boolean;
 }
 
-const DEFAULT_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😠', '😊', '🎉', '🔥', '💯', '👏', '🙌'];
+const DEFAULT_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😠', '🎉', '🔥', '💯', '👏', '🙌', '✨'];
 
 export function MessageInput({
   onSendMessage,
@@ -44,7 +44,12 @@ export function MessageInput({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement;
+      if (
+        emojiPickerRef.current &&
+        !emojiPickerRef.current.contains(target) &&
+        !target.closest('[aria-label="Add emoji"]')
+      ) {
         setShowEmojiPicker(false);
       }
     };

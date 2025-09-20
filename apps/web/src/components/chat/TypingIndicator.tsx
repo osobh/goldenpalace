@@ -24,6 +24,7 @@ export function TypingIndicator({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const minimumDisplayTimeRef = useRef<NodeJS.Timeout | null>(null);
   const previousUsersRef = useRef<string[]>([]);
+  const isShowingRef = useRef(false);
 
   // Deduplicate and filter/replace invalid usernames
   const uniqueUsers = useMemo(() => {
@@ -37,25 +38,19 @@ export function TypingIndicator({
   }, [typingUsers]);
 
   useEffect(() => {
-    // Debounce rapid changes
+    // Clear previous timers
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
 
-    // For initial render or significant changes, update immediately
-    if (uniqueUsers.length > 0 && !isVisible) {
-      setDisplayedUsers(uniqueUsers);
-      setIsVisible(true);
-      setIsFading(false);
-      previousUsersRef.current = uniqueUsers;
-      return;
-    }
-
-    timeoutRef.current = setTimeout(() => {
+    // Handle rapid changes with a small debounce
+    const updateTypingState = () => {
       if (uniqueUsers.length > 0) {
+        // Someone is typing - show immediately
         setDisplayedUsers(uniqueUsers);
         setIsVisible(true);
         setIsFading(false);
+        isShowingRef.current = true;
         previousUsersRef.current = uniqueUsers;
 
         // Clear minimum display time if it exists
@@ -63,21 +58,30 @@ export function TypingIndicator({
           clearTimeout(minimumDisplayTimeRef.current);
           minimumDisplayTimeRef.current = null;
         }
-      } else if (isVisible && uniqueUsers.length === 0) {
-        // Start fade out
+      } else if (isShowingRef.current && uniqueUsers.length === 0) {
+        // No one is typing anymore - start fade out animation
         setIsFading(true);
+
         // Keep showing for minimum duration
         if (!minimumDisplayTimeRef.current) {
           minimumDisplayTimeRef.current = setTimeout(() => {
             setIsVisible(false);
             setIsFading(false);
             setDisplayedUsers([]);
+            isShowingRef.current = false;
             previousUsersRef.current = [];
             minimumDisplayTimeRef.current = null;
           }, 1000);
         }
       }
-    }, 100);
+    };
+
+    // Apply small debounce only if rapidly changing between non-empty states
+    if (uniqueUsers.length > 0 && previousUsersRef.current.length > 0) {
+      timeoutRef.current = setTimeout(updateTypingState, 100);
+    } else {
+      updateTypingState();
+    }
 
     return () => {
       if (timeoutRef.current) {
@@ -87,7 +91,7 @@ export function TypingIndicator({
         clearTimeout(minimumDisplayTimeRef.current);
       }
     };
-  }, [uniqueUsers, isVisible]);
+  }, [uniqueUsers]);
 
   const formatTypingText = () => {
     if (displayedUsers.length === 0) {

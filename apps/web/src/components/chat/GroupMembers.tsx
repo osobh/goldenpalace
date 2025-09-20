@@ -28,8 +28,8 @@ export function GroupMembers({ members, onMemberAction, groupId }: GroupMembersP
   const [expandedMemberActions, setExpandedMemberActions] = useState<string | null>(null);
   const [animatingMembers, setAnimatingMembers] = useState<Set<string>>(new Set());
   const [exitingMembers, setExitingMembers] = useState<Map<string, GroupMember>>(new Map());
-  const [previousMemberIds, setPreviousMemberIds] = useState<Set<string>>(new Set());
-  const [previousMembers, setPreviousMembers] = useState<GroupMember[]>([]);
+  const [previousMemberIds, setPreviousMemberIds] = useState<Set<string>>(() => new Set(members.map(m => m.id)));
+  const [previousMembers, setPreviousMembers] = useState<GroupMember[]>(members);
 
   const currentUserMember = members.find(m => m.userId === user?.id);
   const isAdmin = currentUserMember?.role === 'ADMIN';
@@ -65,7 +65,7 @@ export function GroupMembers({ members, onMemberAction, groupId }: GroupMembersP
 
     setPreviousMemberIds(currentIds);
     setPreviousMembers(members);
-  }, [members, previousMemberIds, previousMembers]);
+  }, [members]); // Fixed infinite loop - removed previousMemberIds and previousMembers from dependencies
 
   // Filter and sort members
   const processedMembers = useMemo(() => {

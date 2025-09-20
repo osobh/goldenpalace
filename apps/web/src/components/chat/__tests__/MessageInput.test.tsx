@@ -318,7 +318,7 @@ describe('MessageInput', () => {
       expect(screen.getByRole('dialog', { name: 'Emoji picker' })).toBeInTheDocument();
     });
 
-    it('should close emoji picker when clicked outside', () => {
+    it('should close emoji picker when clicked outside', async () => {
       render(
         <MessageInput
           onSendMessage={mockOnSendMessage}
@@ -333,9 +333,12 @@ describe('MessageInput', () => {
 
       expect(screen.getByRole('dialog', { name: 'Emoji picker' })).toBeInTheDocument();
 
-      fireEvent.click(document.body);
+      // Use mousedown instead of click to match the event listener
+      fireEvent.mouseDown(document.body);
 
-      expect(screen.queryByRole('dialog', { name: 'Emoji picker' })).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog', { name: 'Emoji picker' })).not.toBeInTheDocument();
+      });
     });
 
     it('should insert emoji at cursor position', () => {

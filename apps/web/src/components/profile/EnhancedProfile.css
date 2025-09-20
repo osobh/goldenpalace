@@ -1,0 +1,588 @@
+.enhanced-profile {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.profile-header {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.header-content {
+  display: flex;
+  gap: 30px;
+  align-items: flex-start;
+}
+
+.user-avatar {
+  flex-shrink: 0;
+}
+
+.user-avatar img {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 4px solid #f0f0f0;
+  object-fit: cover;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-info h1 {
+  margin: 0 0 8px 0;
+  font-size: 2rem;
+  color: #333;
+}
+
+.user-info .email {
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.user-info .bio {
+  color: #444;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.level-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.level-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.prestige-indicator {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.xp-display {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #666;
+}
+
+.level-progress {
+  margin-bottom: 20px;
+}
+
+.progress-bar {
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50 0%, #8bc34a 100%);
+  transition: width 0.5s ease-out;
+}
+
+.social-stats {
+  display: flex;
+  gap: 30px;
+  margin-bottom: 15px;
+}
+
+.social-stats .stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.social-stats .stat span:first-child {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.social-stats .stat span:last-child {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.mutual-followers {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.header-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-edit,
+.btn-follow,
+.btn-share {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-edit,
+.btn-follow {
+  background: #2196f3;
+  color: white;
+}
+
+.btn-edit:hover,
+.btn-follow:hover {
+  background: #1976d2;
+}
+
+.btn-share {
+  background: white;
+  color: #333;
+  border: 2px solid #e0e0e0;
+}
+
+.btn-share:hover {
+  background: #f8f9fa;
+}
+
+.copy-success {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #4caf50;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  animation: fadeInOut 2s ease-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-10px); }
+  20% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.stat-card span:first-child {
+  display: block;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.stat-card span:last-child {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.performance-section,
+.trades-section {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}
+
+.performance-section h3,
+.trades-section h3 {
+  margin: 0 0 20px 0;
+  color: #333;
+}
+
+.performance-chart {
+  height: 300px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+}
+
+.trades-section {
+  display: flex;
+  gap: 20px;
+}
+
+.trade-card {
+  flex: 1;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.trade-card h4 {
+  margin: 0 0 10px 0;
+  color: #666;
+}
+
+.trade-card p {
+  margin: 5px 0;
+  font-weight: 500;
+  color: #333;
+}
+
+.profile-content {
+  background: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.achievements-section,
+.achievement-progress-section,
+.competitions-section,
+.competition-stats,
+.badges-section,
+.activity-section {
+  margin-bottom: 40px;
+}
+
+.achievements-section h3,
+.achievement-progress-section h3,
+.competitions-section h3,
+.badges-section h3,
+.activity-section h3 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 1.3rem;
+}
+
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.achievement-card {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.achievement-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.achievement-card h4 {
+  margin: 10px 0 8px 0;
+  color: #333;
+}
+
+.achievement-card p {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.rarity-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.rarity-badge.common { background: #9e9e9e; color: white; }
+.rarity-badge.rare { background: #2196f3; color: white; }
+.rarity-badge.epic { background: #9c27b0; color: white; }
+.rarity-badge.legendary { background: #ff9800; color: white; }
+.rarity-badge.mythic { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+
+.competition-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.competition-card h4 {
+  flex: 1;
+  margin: 0;
+  color: #333;
+}
+
+.competition-card p {
+  margin: 0 10px;
+  font-weight: 500;
+  color: #666;
+}
+
+.competition-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.competition-stats .stat {
+  text-align: center;
+}
+
+.competition-stats .stat span:first-child {
+  display: block;
+  color: #666;
+  font-size: 0.85rem;
+  margin-bottom: 5px;
+}
+
+.competition-stats .stat span:last-child {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.badges-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.badge.earned {
+  background: white;
+  border: 2px solid #4caf50;
+}
+
+.badge.unearned {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.badge:hover .tooltip {
+  display: block;
+}
+
+.tooltip {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  z-index: 10;
+  margin-bottom: 5px;
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #333;
+}
+
+.activities-list {
+  margin-top: 20px;
+}
+
+.activity-item {
+  display: flex;
+  gap: 15px;
+  padding: 15px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-icon {
+  font-size: 1.5rem;
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-content h4 {
+  margin: 0 0 5px 0;
+  color: #333;
+}
+
+.activity-content span {
+  color: #666;
+  font-size: 0.9rem;
+  margin-right: 15px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal h2 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.modal p {
+  margin: 10px 0;
+  color: #666;
+  line-height: 1.6;
+}
+
+.modal button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 20px;
+  background: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.modal button:hover {
+  background: #1976d2;
+}
+
+.mobile-tabs {
+  display: none;
+  gap: 10px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  padding-bottom: 5px;
+}
+
+.mobile-tabs button {
+  padding: 10px 20px;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mobile-tabs button.active {
+  background: #2196f3;
+  color: white;
+  border-color: #2196f3;
+}
+
+@media (max-width: 768px) {
+  .enhanced-profile.mobile .mobile-tabs {
+    display: flex;
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .user-avatar img {
+    width: 100px;
+    height: 100px;
+  }
+
+  .header-actions {
+    flex-direction: row;
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  .header-actions button {
+    flex: 1;
+  }
+
+  .profile-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .trades-section {
+    flex-direction: column;
+  }
+
+  .achievements-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .competition-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
