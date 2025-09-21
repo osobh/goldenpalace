@@ -4,7 +4,7 @@ import type {
   AlertWithDetails,
   MarketQuote,
   ServiceResult
-} from '@golden-palace/shared/types';
+} from '@golden-palace/shared';
 import { PaperPositionRepository } from '../repositories/paperPosition.repository';
 import { TradeIdeaRepository } from '../repositories/tradeIdea.repository';
 import { AlertRepository } from '../repositories/alert.repository';

@@ -1,5 +1,5 @@
 import { PrismaClient } from '@golden-palace/database';
-import type { AlertWithDetails } from '@golden-palace/shared/types';
+import type { AlertWithDetails } from '@golden-palace/shared';
 import type { AlertCondition, AlertStatus } from '@golden-palace/database';
 
 export interface CreateAlertData {

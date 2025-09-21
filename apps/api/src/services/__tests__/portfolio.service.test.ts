@@ -10,7 +10,7 @@ import type {
   PortfolioSummary,
   PaginatedResult,
   ServiceResult
-} from '@golden-palace/shared/types';
+} from '@golden-palace/shared';
 import type { AssetType, PositionStatus } from '@golden-palace/database';
 
 // Mock the repositories

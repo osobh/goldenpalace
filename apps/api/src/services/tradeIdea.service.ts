@@ -8,7 +8,7 @@ import type {
   TradeIdeaPerformanceStats,
   TrendingSymbol,
   TradeIdeaSearchQuery
-} from '@golden-palace/shared/types';
+} from '@golden-palace/shared';
 import type { TradeDirection } from '@golden-palace/database';
 import { TradeIdeaRepository } from '../repositories/tradeIdea.repository';
 import { GroupRepository } from '../repositories/group.repository';

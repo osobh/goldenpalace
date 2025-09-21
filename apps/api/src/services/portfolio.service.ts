@@ -6,7 +6,7 @@ import type {
   TradingMetrics,
   PaginatedResult,
   ServiceResult
-} from '@golden-palace/shared/types';
+} from '@golden-palace/shared';
 import { PaperPositionRepository, type GetPositionsQuery } from '../repositories/paperPosition.repository';
 import { TradeIdeaRepository } from '../repositories/tradeIdea.repository';
 import { GroupRepository } from '../repositories/group.repository';

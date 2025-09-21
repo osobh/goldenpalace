@@ -1,0 +1,118 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String    @unique
+  passwordHash  String
+  firstName     String?
+  lastName      String?
+  avatar        String?
+  bio           String?
+  isVerified    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  trades        Trade[]
+  following     Follow[]  @relation("follower")
+  followers     Follow[]  @relation("following")
+  posts         Post[]
+  ratings       Rating[]
+
+  @@index([email])
+  @@index([username])
+}
+
+// Trade model for copy trading
+model Trade {
+  id            String    @id @default(cuid())
+  userId        String
+  symbol        String
+  type          String    // 'buy' or 'sell'
+  amount        Float
+  price         Float
+  status        String    @default("open") // 'open', 'closed', 'pending'
+  pnl           Float?
+  pnlPercentage Float?
+  copiedFrom    String?   // ID of the trader this was copied from
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([symbol])
+  @@index([status])
+}
+
+// Follow model for social trading
+model Follow {
+  id            String    @id @default(cuid())
+  followerId    String
+  followingId   String
+  copySettings  Json?     // Store copy trading settings as JSON
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  follower      User      @relation("follower", fields: [followerId], references: [id])
+  following     User      @relation("following", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+// Social feed posts
+model Post {
+  id            String    @id @default(cuid())
+  userId        String
+  content       String
+  type          String    @default("text") // 'text', 'trade', 'analysis'
+  attachments   Json?
+  likes         Int       @default(0)
+  shares        Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// Trader ratings
+model Rating {
+  id            String    @id @default(cuid())
+  raterId       String
+  traderId      String
+  rating        Int       // 1-5
+  title         String?
+  comment       String?
+  verified      Boolean   @default(false)
+  helpful       Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  rater         User      @relation(fields: [raterId], references: [id])
+
+  @@unique([raterId, traderId])
+  @@index([traderId])
+  @@index([rating])
+}

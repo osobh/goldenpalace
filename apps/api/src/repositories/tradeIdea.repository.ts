@@ -6,7 +6,7 @@ import type {
   TradeIdeaPerformanceStats,
   TrendingSymbol,
   TradeIdeaSearchQuery
-} from '@golden-palace/shared/types';
+} from '@golden-palace/shared';
 import type { AssetType, TradeDirection, TradeStatus } from '@golden-palace/database';
 
 export interface CreateTradeIdeaData {

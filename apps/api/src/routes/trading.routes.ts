@@ -9,7 +9,10 @@ import { AlertRepository } from '../repositories/alert.repository';
 import { GroupRepository } from '../repositories/group.repository';
 import { AuthMiddleware } from '../middleware/auth.middleware';
 import { ValidationMiddleware } from '../middleware/validation.middleware';
-import { database } from '@golden-palace/database';
+import { TokenService } from '../services/token.service';
+import { UserRepository } from '../repositories/user.repository';
+import { prisma } from '../lib/prisma';
+import { PrismaClient } from '@golden-palace/database';
 import type {
   CreateTradeIdeaInput,
   UpdateTradeIdeaInput,
@@ -17,28 +20,30 @@ import type {
   CreatePaperPositionInput,
   UpdatePositionInput,
   MarketQuote
-} from '@golden-palace/shared/types';
+} from '@golden-palace/shared';
 import {
   createTradeIdeaSchema,
   updateTradeIdeaSchema,
   getTradeIdeasQuerySchema,
   createPaperPositionSchema,
   updatePositionSchema
-} from '@golden-palace/shared/types';
+} from '@golden-palace/shared';
 
 const router = express.Router();
 
 // Initialize repositories and services
-const tradeIdeaRepository = new TradeIdeaRepository(database);
-const paperPositionRepository = new PaperPositionRepository(database);
-const alertRepository = new AlertRepository(database);
-const groupRepository = new GroupRepository(database);
+const tradeIdeaRepository = new TradeIdeaRepository(prisma);
+const paperPositionRepository = new PaperPositionRepository(prisma);
+const alertRepository = new AlertRepository(prisma);
+const groupRepository = new GroupRepository(prisma);
 
 const tradeIdeaService = new TradeIdeaService(tradeIdeaRepository, groupRepository);
 const portfolioService = new PortfolioService(paperPositionRepository, tradeIdeaRepository, groupRepository);
 const tradeExecutionService = new TradeExecutionService(paperPositionRepository, tradeIdeaRepository, alertRepository);
 
-const authMiddleware = new AuthMiddleware();
+const tokenService = new TokenService();
+const userRepository = new UserRepository();
+const authMiddleware = new AuthMiddleware(tokenService, userRepository);
 const validationMiddleware = new ValidationMiddleware();
 
 // Validation schemas
@@ -729,4 +734,4 @@ router.get(
   }
 );
 
-export default router;
+export { router as tradingRoutes };

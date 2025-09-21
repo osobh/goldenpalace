@@ -119,7 +119,7 @@ export class WebSocketService {
 
   async connect(token: string, serverUrl?: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
-      const url = serverUrl || (import.meta.env as any).VITE_WS_URL || 'http://localhost:3001';
+      const url = serverUrl || (import.meta.env as any).VITE_WS_URL || '';
 
       this.socket = io(url, {
         auth: {

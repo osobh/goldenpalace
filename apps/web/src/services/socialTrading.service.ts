@@ -209,9 +209,8 @@ export class SocialTradingService {
     };
 
     try {
-      // Convert relative URLs to absolute URLs for testing
-      const fullUrl = url.startsWith('http') ? url : `http://localhost:3001${url}`;
-      const response = await fetch(fullUrl, defaultOptions);
+      // Use the URL as-is (Vite proxy will handle relative URLs)
+      const response = await fetch(url, defaultOptions);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

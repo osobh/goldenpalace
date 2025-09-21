@@ -9,7 +9,7 @@ import type {
   TradeIdeaWithDetails,
   PaginatedResult,
   ServiceResult
-} from '@golden-palace/shared/types';
+} from '@golden-palace/shared';
 import type { AssetType, TradeDirection, TradeStatus } from '@golden-palace/database';
 
 // Mock the repositories

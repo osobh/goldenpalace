@@ -4,7 +4,7 @@ import type {
   PortfolioSummary,
   TradingMetrics,
   PaginatedResult
-} from '@golden-palace/shared/types';
+} from '@golden-palace/shared';
 import type { AssetType, PositionStatus } from '@golden-palace/database';
 
 export interface CreatePaperPositionData {

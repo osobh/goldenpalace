@@ -14,7 +14,7 @@ import type {
   CompetitionStats,
   PaginatedResult,
   ServiceResult
-} from '@golden-palace/shared/types';
+} from '@golden-palace/shared';
 import type { CompetitionType, CompetitionStatus, GroupRole } from '@golden-palace/database';
 
 // Mock the repositories

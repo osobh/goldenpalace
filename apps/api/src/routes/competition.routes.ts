@@ -1,12 +1,15 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import { authenticateToken } from '../middleware/auth.middleware';
+import { AuthMiddleware } from '../middleware/auth.middleware';
 import { ValidationMiddleware } from '../middleware/validation.middleware';
 import { CompetitionService } from '../services/competition.service';
 import { CompetitionEntryService } from '../services/competitionEntry.service';
 import { CompetitionRepository } from '../repositories/competition.repository';
 import { CompetitionEntryRepository } from '../repositories/competitionEntry.repository';
 import { TradeRepository } from '../repositories/trade.repository';
+import { UserRepository } from '../repositories/user.repository';
+import { TokenService } from '../services/token.service';
+import { prisma } from '../lib/prisma';
 import {
   createCompetitionSchema,
   updateCompetitionSchema,
@@ -19,6 +22,9 @@ const validationMiddleware = new ValidationMiddleware();
 const competitionRepository = new CompetitionRepository();
 const entryRepository = new CompetitionEntryRepository();
 const tradeRepository = new TradeRepository();
+const userRepository = new UserRepository();
+const tokenService = new TokenService();
+const authMiddleware = new AuthMiddleware(tokenService, userRepository);
 
 const competitionService = new CompetitionService(
   competitionRepository,
@@ -30,7 +36,7 @@ const entryService = new CompetitionEntryService(
   tradeRepository
 );
 
-router.use(authenticateToken);
+router.use(authMiddleware.authenticate);
 
 router.post(
   '/',
