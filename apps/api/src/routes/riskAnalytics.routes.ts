@@ -16,6 +16,7 @@ import {
   riskReportSchema
 } from '@golden-palace/shared';
 
+
 const router = Router();
 const validationMiddleware = new ValidationMiddleware();
 
@@ -35,7 +36,23 @@ const riskAnalyticsService = new RiskAnalyticsService(
   marketDataService
 );
 
-router.use(authMiddleware.authenticate);
+// In development mode, add mock user to request if not authenticated
+if (process.env.NODE_ENV === 'development') {
+  router.use((req: any, _res: any, next: any) => {
+    if (!req.user) {
+      // Add a mock user for development
+      req.user = {
+        id: 'dev-user-123',
+        email: 'dev@goldenpalace.com',
+        username: 'devuser'
+      };
+    }
+    next();
+  });
+} else {
+  // In production, require authentication
+  router.use(authMiddleware.authenticate);
+}
 
 // Calculate risk metrics for a portfolio
 router.post(

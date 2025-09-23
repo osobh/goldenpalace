@@ -93,7 +93,7 @@ main() {
         fi
     else
         print_warning "Docker containers are still running"
-        echo "  • PostgreSQL: port 5432"
+        echo "  • PostgreSQL: port 5434"
         echo "  • Redis: port 6379"
         echo "  • Adminer: http://localhost:8080"
         echo "  • Redis Commander: http://localhost:8081"

@@ -4,3 +4,4 @@ export * from './trading';
 export * from './chat';
 export * from './competition';
 export * from './api';
+export * from './riskAnalytics';

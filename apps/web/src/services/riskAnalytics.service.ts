@@ -27,9 +27,14 @@ class RiskAnalyticsService {
       input
     );
 
-    // Check if response.data exists (might be HTML error page for 404)
+    // Handle authentication errors specifically
+    if (!response.success && response.error === 'Authentication required') {
+      throw new Error('Authentication required. Please log in to access risk analytics.');
+    }
+
+    // Check if response.data exists (might be HTML error page for actual 404)
     if (!response.data || typeof response.data !== 'object') {
-      throw new Error('API endpoint not found. Please ensure the server is running with the latest code.');
+      throw new Error('Unable to access risk analytics. The API may be unavailable.');
     }
 
     if (!response.data.success || !response.data.data) {

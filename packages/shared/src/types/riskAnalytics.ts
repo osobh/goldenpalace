@@ -1,17 +1,17 @@
 import { z } from 'zod';
 
-export const RISK_LEVELS = ['LOW', 'MEDIUM', 'HIGH', 'EXTREME'] as const;
+export const RISK_ANALYTICS_LEVELS = ['LOW', 'MEDIUM', 'HIGH', 'EXTREME'] as const;
 export const RISK_METRICS = ['VAR', 'CVAR', 'SHARPE', 'SORTINO', 'BETA', 'ALPHA', 'DRAWDOWN'] as const;
 export const TIME_HORIZONS = ['1D', '1W', '1M', '3M', '6M', '1Y'] as const;
 export const CONFIDENCE_LEVELS = [0.90, 0.95, 0.99] as const;
 
-export type RiskLevel = typeof RISK_LEVELS[number];
+export type RiskAnalyticsLevel = typeof RISK_ANALYTICS_LEVELS[number];
 export type RiskMetric = typeof RISK_METRICS[number];
 export type TimeHorizon = typeof TIME_HORIZONS[number];
 export type ConfidenceLevel = typeof CONFIDENCE_LEVELS[number];
 
 export const calculateRiskSchema = z.object({
-  portfolioId: z.string().cuid(),
+  portfolioId: z.string().min(1), // Changed from .cuid() to accept any non-empty string
   timeHorizon: z.enum(TIME_HORIZONS).default('1M'),
   confidenceLevel: z.number().min(0.9).max(0.99).default(0.95),
   includeCorrelations: z.boolean().default(true),
@@ -19,7 +19,7 @@ export const calculateRiskSchema = z.object({
 });
 
 export const riskLimitsSchema = z.object({
-  portfolioId: z.string().cuid(),
+  portfolioId: z.string().min(1), // Changed from .cuid() to accept any non-empty string
   maxDrawdown: z.number().positive().max(100),
   maxVaR: z.number().positive(),
   maxLeverage: z.number().positive().default(1),
@@ -29,7 +29,7 @@ export const riskLimitsSchema = z.object({
 });
 
 export const stressTestSchema = z.object({
-  portfolioId: z.string().cuid(),
+  portfolioId: z.string().min(1), // Changed from .cuid() to accept any non-empty string
   scenarios: z.array(z.object({
     name: z.string(),
     marketChange: z.number().min(-100).max(100),
@@ -40,7 +40,7 @@ export const stressTestSchema = z.object({
 });
 
 export const riskReportSchema = z.object({
-  portfolioId: z.string().cuid(),
+  portfolioId: z.string().min(1), // Changed from .cuid() to accept any non-empty string
   reportType: z.enum(['SUMMARY', 'DETAILED', 'REGULATORY']),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
@@ -81,7 +81,7 @@ export interface RiskMetrics {
   covariance: Record<string, number>;
   trackingError: number;
 
-  riskLevel: RiskLevel;
+  riskLevel: RiskAnalyticsLevel;
   riskScore: number;
 }
 
@@ -154,7 +154,7 @@ export interface StressTestResult {
   };
 
   probability: number;
-  severity: RiskLevel;
+  severity: RiskAnalyticsLevel;
 }
 
 export interface CorrelationMatrix {
@@ -183,8 +183,8 @@ export interface RiskReport {
     end: Date;
   };
 
-  executive Summary: {
-    overallRiskLevel: RiskLevel;
+  executiveSummary: {
+    overallRiskLevel: RiskAnalyticsLevel;
     riskScore: number;
     keyRisks: string[];
     recommendations: string[];
@@ -225,7 +225,7 @@ export interface RiskAlert {
   id: string;
   portfolioId: string;
   alertType: 'LIMIT_BREACH' | 'HIGH_VOLATILITY' | 'CONCENTRATION' | 'DRAWDOWN' | 'CORRELATION_SPIKE';
-  severity: RiskLevel;
+  severity: RiskAnalyticsLevel;
   message: string;
   details: any;
   triggered: Date;

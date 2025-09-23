@@ -1,0 +1,6 @@
+services:
+  postgres:
+    environment:
+      POSTGRES_DB: golden_palace_dev
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
