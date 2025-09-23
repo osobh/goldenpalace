@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { RefreshCw, Plus } from 'lucide-react';
 import { usePortfolioStore } from '../../stores/portfolioStore';
 import { PortfolioCard } from './PortfolioCard';
@@ -13,24 +14,20 @@ type SortOption = 'name' | 'value' | 'return' | 'date';
 type FilterOption = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'CLOSED';
 
 export function PortfolioList({ loadingPortfolioId, onCreateNew }: PortfolioListProps) {
+  const navigate = useNavigate();
   const {
     portfolios,
     isLoading,
     error,
     fetchPortfolios,
-    selectPortfolio,
     clearError,
   } = usePortfolioStore();
 
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [filterBy, setFilterBy] = useState<FilterOption>('ALL');
 
-  useEffect(() => {
-    fetchPortfolios();
-  }, [fetchPortfolios]);
-
   const handlePortfolioClick = (portfolioId: string) => {
-    selectPortfolio(portfolioId);
+    navigate(`/portfolio/${portfolioId}`);
   };
 
   const handleRetry = () => {

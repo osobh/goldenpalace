@@ -23,6 +23,8 @@ interface PortfolioState {
   // UI State
   isLoading: boolean;
   error: string | null;
+  rateLimited: boolean;
+  rateLimitedUntil: number | null;
 
   // Actions
   fetchPortfolios: () => Promise<void>;
@@ -56,26 +58,75 @@ export const usePortfolioStore = create<PortfolioState>()(
       riskMetrics: null,
       isLoading: false,
       error: null,
+      rateLimited: false,
+      rateLimitedUntil: null,
 
       // Fetch all portfolios
       fetchPortfolios: async () => {
-        set({ isLoading: true, error: null });
+        console.log('[PortfolioStore] fetchPortfolios called');
+
+        const state = get();
+
+        // Check if we're still rate limited
+        if (state.rateLimited && state.rateLimitedUntil && Date.now() < state.rateLimitedUntil) {
+          const waitTime = Math.ceil((state.rateLimitedUntil - Date.now()) / 1000);
+          set({ error: `Rate limited. Please wait ${waitTime} seconds.` });
+          return;
+        }
+
+        set({ isLoading: true, error: null, rateLimited: false });
 
         try {
+          console.log('[PortfolioStore] Calling portfolioService.getPortfolios()...');
           const response = await portfolioService.getPortfolios();
+          console.log('[PortfolioStore] Response:', response);
+
+          if ((response as any).rateLimited) {
+            // Handle rate limiting
+            const waitTime = 60; // Default to 60 seconds if not specified
+            set({
+              portfolios: [],
+              isLoading: false,
+              error: response.error || 'Rate limited',
+              rateLimited: true,
+              rateLimitedUntil: Date.now() + (waitTime * 1000),
+            });
+            return;
+          }
 
           if (response.success && response.data) {
             set({
               portfolios: response.data,
               isLoading: false,
               error: null,
+              rateLimited: false,
+              rateLimitedUntil: null,
             });
           } else {
-            set({
-              portfolios: [],
-              isLoading: false,
-              error: response.error || 'Failed to fetch portfolios',
-            });
+            // Check if it's an authentication error
+            const isAuthError = response.error?.toLowerCase().includes('authentication') ||
+                               response.error?.toLowerCase().includes('unauthorized');
+
+            if (isAuthError) {
+              // For auth errors, don't set error state since auth store will handle logout
+              console.log('Portfolio fetch failed due to authentication error');
+              set({
+                portfolios: [],
+                isLoading: false,
+                error: null, // Don't show error since user will be redirected to login
+                rateLimited: false,
+                rateLimitedUntil: null,
+              });
+            } else {
+              // For other errors, show the error message
+              set({
+                portfolios: [],
+                isLoading: false,
+                error: response.error || 'Failed to fetch portfolios',
+                rateLimited: false,
+                rateLimitedUntil: null,
+              });
+            }
           }
         } catch (error) {
           set({

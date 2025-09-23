@@ -12,6 +12,7 @@ import { authRoutes } from './routes/auth.routes';
 import { chatRoutes } from './routes/chat.routes';
 import { tradingRoutes } from './routes/trading.routes';
 import { competitionRoutes } from './routes/competition.routes';
+import { portfolioRoutes } from './routes/portfolio.routes';
 
 dotenv.config();
 
@@ -56,13 +57,18 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/api', limiter);
+
+// Only apply rate limiting in production
+if (process.env.NODE_ENV === 'production') {
+  app.use('/api', limiter);
+}
 
 // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/trading', tradingRoutes);
 app.use('/api/competitions', competitionRoutes);
+app.use('/api/portfolio', portfolioRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({

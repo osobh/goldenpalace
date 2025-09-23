@@ -1,16 +1,37 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, TrendingUp, TrendingDown, Shield, Activity } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { usePortfolioStore } from '../stores/portfolioStore';
 import { PortfolioList } from '../components/portfolio/PortfolioList';
+import { CreatePortfolioModal } from '../components/portfolio/wizard/CreatePortfolioModal';
 
 export function DashboardPage() {
-  const { user } = useAuthStore();
+  const { user, isInitialized, isAuthenticated } = useAuthStore();
   const { portfolios, isLoading, fetchPortfolios } = usePortfolioStore();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  console.log('[Dashboard Mount]', {
+    user,
+    isInitialized,
+    isAuthenticated,
+    accessToken: localStorage.getItem('accessToken'),
+    refreshToken: localStorage.getItem('refreshToken')
+  });
 
   useEffect(() => {
-    fetchPortfolios();
-  }, [fetchPortfolios]);
+    console.log('[Dashboard useEffect]', {
+      isInitialized,
+      isAuthenticated,
+      user,
+      willFetchPortfolios: isInitialized
+    });
+
+    // Wait for auth to be initialized before fetching portfolios
+    if (isInitialized) {
+      console.log('[Dashboard] Calling fetchPortfolios...');
+      fetchPortfolios();
+    }
+  }, [isInitialized, fetchPortfolios]);
 
   const dashboardStats = useMemo(() => {
     if (portfolios.length === 0) {
@@ -31,7 +52,7 @@ export function DashboardPage() {
     const dayChange = portfolios.reduce((sum, p) => sum + p.dayChange, 0);
     const dayChangePercentage = totalValue > 0 ? (dayChange / (totalValue - dayChange)) * 100 : 0;
     const totalReturnPercentage = totalInitial > 0 ? (totalReturn / totalInitial) * 100 : 0;
-    const activePositions = portfolios.reduce((sum, p) => sum + p.assets.length, 0);
+    const activePositions = portfolios.reduce((sum, p) => sum + (p.assets?.length || 0), 0);
 
     // Calculate average risk level
     const riskLevels = portfolios.filter(p => p.riskMetrics).map(p => p.riskMetrics!.volatility);
@@ -89,7 +110,10 @@ export function DashboardPage() {
             Welcome back, {user?.username}! Here's your portfolio overview.
           </p>
         </div>
-        <button className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+        >
           <Plus className="h-4 w-4 mr-2" />
           New Portfolio
         </button>
@@ -180,7 +204,10 @@ export function DashboardPage() {
           <div className="bg-card border border-border rounded-lg p-6">
             <h3 className="text-lg font-medium text-foreground mb-4">Quick Actions</h3>
             <div className="space-y-3">
-              <button className="w-full text-left p-3 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="w-full text-left p-3 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
+              >
                 <div className="font-medium text-foreground">Create Portfolio</div>
                 <div className="text-sm text-muted-foreground">Start tracking your investments</div>
               </button>
@@ -230,6 +257,17 @@ export function DashboardPage() {
           </div>
           <PortfolioList />
         </div>
+      )}
+
+      {/* Create Portfolio Modal */}
+      {showCreateModal && (
+        <CreatePortfolioModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setShowCreateModal(false);
+            fetchPortfolios(); // Refresh portfolios after creation
+          }}
+        />
       )}
     </div>
   );

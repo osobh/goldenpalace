@@ -389,72 +389,88 @@ export class PaperPositionRepository {
   }
 
   async getPortfolioSummary(userId: string, groupId?: string): Promise<PortfolioSummary> {
-    const where: any = {
-      userId,
-      ...(groupId && { groupId }),
-    };
+    try {
+      console.log(`[Portfolio] Getting summary for user ${userId}, group ${groupId}`);
 
-    const [openPositions, closedPositions, openPnL, totalPnL] = await Promise.all([
-      this.prisma.paperPosition.count({
+      const where: any = {
+        userId,
+        ...(groupId && { groupId }),
+      };
+
+      // Get all open positions for proper calculation
+      const openPositions = await this.prisma.paperPosition.findMany({
         where: { ...where, status: 'OPEN' },
-      }),
-      this.prisma.paperPosition.count({
+        select: {
+          id: true,
+          currentPrice: true,
+          quantity: true,
+          entryPrice: true,
+          pnl: true,
+        },
+      });
+
+      const closedPositionsCount = await this.prisma.paperPosition.count({
         where: { ...where, status: 'CLOSED' },
-      }),
-      this.prisma.paperPosition.aggregate({
-        where: { ...where, status: 'OPEN' },
+      });
+
+      console.log(`[Portfolio] Found ${openPositions.length} open positions, ${closedPositionsCount} closed positions`);
+
+      // Calculate total portfolio value properly (sum of each position's market value)
+      let totalValue = 0;
+      let totalUnrealizedPnL = 0;
+
+      for (const position of openPositions) {
+        const currentPrice = Number(position.currentPrice || 0);
+        const quantity = Number(position.quantity || 0);
+        const entryPrice = Number(position.entryPrice || 0);
+
+        // Market value = current price * quantity
+        const marketValue = currentPrice * quantity;
+        totalValue += marketValue;
+
+        // Calculate PnL if not already stored
+        let positionPnL = Number(position.pnl || 0);
+        if (positionPnL === 0 && currentPrice > 0 && entryPrice > 0) {
+          positionPnL = (currentPrice - entryPrice) * quantity;
+        }
+        totalUnrealizedPnL += positionPnL;
+      }
+
+      // Get total realized PnL from closed positions
+      const totalPnLResult = await this.prisma.paperPosition.aggregate({
+        where: { ...where, status: 'CLOSED' },
         _sum: {
           pnl: true,
         },
-      }),
-      this.prisma.paperPosition.aggregate({
-        where,
-        _sum: {
-          pnl: true,
-        },
-      }),
-    ]);
+      });
 
-    // Calculate day PnL (positions updated today)
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+      const totalRealizedPnL = Number(totalPnLResult._sum.pnl || 0);
+      const totalPnL = totalRealizedPnL + totalUnrealizedPnL;
 
-    const dayPnL = await this.prisma.paperPosition.aggregate({
-      where: {
-        ...where,
-        updatedAt: {
-          gte: todayStart,
-        },
-      },
-      _sum: {
-        pnl: true,
-      },
-    });
+      // TODO: Implement proper daily PnL calculation
+      // Note: PaperPosition model doesn't have updatedAt field, only openedAt and closedAt
+      // For now, setting dayPnL to 0 to unblock portfolio functionality
+      // Future enhancement: track daily P&L using openedAt/closedAt or add updatedAt to schema
+      const dayPnL = 0;
 
-    // Calculate total value (simplified - would need real market data)
-    const openPositionsValue = await this.prisma.paperPosition.aggregate({
-      where: { ...where, status: 'OPEN' },
-      _sum: {
-        currentPrice: true,
-        quantity: true,
-      },
-    });
+      const result = {
+        totalValue: Number(totalValue.toFixed(2)),
+        totalPnl: Number(totalPnL.toFixed(2)),
+        totalPnlPercent: totalValue > 0 ? Number(((totalPnL / totalValue) * 100).toFixed(2)) : 0,
+        dayPnl: Number(dayPnL.toFixed(2)),
+        dayPnlPercent: totalValue > 0 ? Number(((dayPnL / totalValue) * 100).toFixed(2)) : 0,
+        openPositions: openPositions.length,
+        closedPositions: closedPositionsCount,
+        activeAlerts: 0, // Would come from alerts repository
+        buyingPower: 10000.00, // Simplified - would be calculated based on account balance
+      };
 
-    const totalValue = Number(openPositionsValue._sum.currentPrice || 0) * Number(openPositionsValue._sum.quantity || 0);
-    const totalPnlValue = Number(totalPnL._sum.pnl || 0);
-    const dayPnlValue = Number(dayPnL._sum.pnl || 0);
-
-    return {
-      totalValue: Number(totalValue.toFixed(2)),
-      totalPnl: Number(totalPnlValue.toFixed(2)),
-      totalPnlPercent: totalValue > 0 ? Number(((totalPnlValue / totalValue) * 100).toFixed(2)) : 0,
-      dayPnl: Number(dayPnlValue.toFixed(2)),
-      dayPnlPercent: totalValue > 0 ? Number(((dayPnlValue / totalValue) * 100).toFixed(2)) : 0,
-      openPositions,
-      closedPositions,
-      activeAlerts: 0, // Would come from alerts repository
-      buyingPower: 10000.00, // Simplified - would be calculated based on account balance
-    };
+      console.log(`[Portfolio] Summary calculated:`, result);
+      return result;
+    } catch (error) {
+      console.error(`[Portfolio] Error calculating summary for user ${userId}:`, error);
+      throw error;
+    }
   }
 
   async getTradingMetrics(userId: string, groupId?: string, days?: number): Promise<TradingMetrics> {

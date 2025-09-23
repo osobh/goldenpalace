@@ -76,8 +76,15 @@ export class CompetitionRepository {
   async getActiveCompetitions(): Promise<Competition[]> {
     return prisma.competition.findMany({
       where: {
-        status: 'ACTIVE',
-        endDate: { gte: new Date() }
+        OR: [
+          {
+            status: 'ACTIVE',
+            endDate: { gte: new Date() }
+          },
+          {
+            status: 'PENDING'
+          }
+        ]
       },
       orderBy: { startDate: 'asc' }
     });

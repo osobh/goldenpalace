@@ -4,8 +4,10 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { authRoutes } from './routes/auth.routes';
 import { chatRoutes } from './routes/chat.routes';
-import tradingRoutes from './routes/trading.routes';
+import { tradingRoutes } from './routes/trading.routes';
 import { competitionRoutes } from './routes/competition.routes';
+import { portfolioRoutes } from './routes/portfolio.routes';
+import { riskAnalyticsRoutes } from './routes/riskAnalytics.routes';
 
 const app = express();
 
@@ -24,7 +26,7 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: process.env['FRONTEND_URL'] || 'http://localhost:3000',
+  origin: process.env['CLIENT_URL'] || 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -76,6 +78,8 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/trading', tradingRoutes);
 app.use('/api/competitions', competitionRoutes);
+app.use('/api/portfolio', portfolioRoutes);
+app.use('/api/risk-analytics', riskAnalyticsRoutes);
 
 // 404 handler
 app.use((req, res) => {

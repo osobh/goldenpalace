@@ -20,13 +20,24 @@ export class CompetitionService {
     data: {
       groupId: string;
       name: string;
+      description?: string;
       type: string;
       startDate: Date;
       endDate: Date;
+      entryFee?: number;
       prizePool?: number;
+      prizeDistribution?: Record<string, number>;
+      rules?: {
+        minTrades?: number;
+        maxPositionSize?: number;
+        allowedAssets?: string[];
+        tradingHours?: {
+          start: string;
+          end: string;
+        };
+      };
       minTrades?: number;
       maxParticipants?: number;
-      prizeDistribution?: Record<string, number>;
     }
   ): Promise<ServiceResult<Competition>> {
     try {
@@ -68,35 +79,21 @@ export class CompetitionService {
         }
       }
 
-      if (data.minTrades && (data.minTrades < 1 || data.minTrades > 1000)) {
+      const minTrades = data.rules?.minTrades || data.minTrades || 5;
+
+      if (minTrades && (minTrades < 1 || minTrades > 1000)) {
         return {
           success: false,
           error: 'Minimum trades must be between 1 and 1000'
         };
       }
 
-      const overlapping = await (this.competitionRepository as any).findByDateRange?.(
-        data.startDate,
-        data.endDate
-      ) || [];
-
-      const hasOverlap = overlapping.some((comp: any) =>
-        comp.groupId === data.groupId && comp.type === data.type
-      );
-
-      if (hasOverlap) {
-        return {
-          success: false,
-          error: 'Competition overlaps with existing competition'
-        };
-      }
 
       const competition = await this.competitionRepository.create({
         ...data,
         createdBy: userId,
         status: 'PENDING',
-        minTrades: data.minTrades || 5,
-        maxParticipants: data.maxParticipants || 100
+        minTrades
       } as any);
 
       return {
@@ -595,6 +592,168 @@ export class CompetitionService {
       ...details,
       statistics: stats
     };
+  }
+
+  async getUserStatistics(userId: string): Promise<any> {
+    try {
+      const userEntries = await this.entryRepository.findByUserId(userId);
+
+      if (!userEntries || userEntries.length === 0) {
+        return {
+          totalCompetitions: 0,
+          wins: 0,
+          top3Finishes: 0,
+          totalEarnings: 0,
+          avgPosition: 0,
+          winRate: 0,
+          currentStreak: 0
+        };
+      }
+
+      const totalCompetitions = userEntries.length;
+      const wins = userEntries.filter(entry => entry.rank === 1).length;
+      const top3Finishes = userEntries.filter(entry => entry.rank && entry.rank <= 3).length;
+      const totalEarnings = userEntries.reduce((sum, entry) => sum + (entry.totalPnl || 0), 0);
+      const avgPosition = userEntries.reduce((sum, entry) => sum + (entry.rank || 999), 0) / totalCompetitions;
+      const winRate = totalCompetitions > 0 ? (wins / totalCompetitions) : 0;
+
+      // Calculate current streak
+      let currentStreak = 0;
+      const sortedEntries = userEntries
+        .filter(entry => entry.rank)
+        .sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime());
+
+      for (const entry of sortedEntries) {
+        if (entry.rank === 1) {
+          currentStreak++;
+        } else {
+          break;
+        }
+      }
+
+      return {
+        totalCompetitions,
+        wins,
+        top3Finishes,
+        totalEarnings,
+        avgPosition,
+        winRate,
+        currentStreak
+      };
+    } catch (error: any) {
+      console.error('Error getting user statistics:', error);
+      return {
+        totalCompetitions: 0,
+        wins: 0,
+        top3Finishes: 0,
+        totalEarnings: 0,
+        avgPosition: 0,
+        winRate: 0,
+        currentStreak: 0
+      };
+    }
+  }
+
+  async getGlobalLeaderboard(
+    metric: string = 'TOTAL_RETURN',
+    period: string = 'all-time',
+    limit: number = 10
+  ): Promise<any[]> {
+    try {
+      // Get entries across all competitions based on period
+      let entries = await this.entryRepository.findAll();
+
+      if (period !== 'all-time') {
+        const now = new Date();
+        let dateFilter: Date;
+
+        switch (period) {
+          case 'daily':
+            dateFilter = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            break;
+          case 'weekly':
+            dateFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case 'monthly':
+            dateFilter = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+          default:
+            dateFilter = new Date(0);
+        }
+
+        entries = entries.filter(entry => new Date(entry.updatedAt) >= dateFilter);
+      }
+
+      // Group entries by user and aggregate stats
+      const userStats = entries.reduce((acc, entry) => {
+        const userId = entry.userId;
+        if (!acc[userId]) {
+          acc[userId] = {
+            userId,
+            username: entry.user?.username || 'Unknown',
+            avatar: entry.user?.avatarUrl,
+            totalReturn: 0,
+            returnPercentage: 0,
+            totalTrades: 0,
+            winningTrades: 0,
+            competitions: 0,
+            bestRank: 999,
+            entries: []
+          };
+        }
+
+        // Calculate total return from ROI and starting balance
+        const totalReturn = entry.roi ? (Number(entry.roi) / 100) * Number(entry.startingBalance) : 0;
+        acc[userId].totalReturn += totalReturn;
+        acc[userId].totalTrades += entry.totalTrades || 0;
+        acc[userId].winningTrades += entry.winningTrades || 0;
+        acc[userId].competitions += 1;
+        acc[userId].bestRank = Math.min(acc[userId].bestRank, entry.rank || 999);
+        acc[userId].entries.push(entry);
+
+        return acc;
+      }, {} as Record<string, any>);
+
+      // Convert to array and calculate additional metrics
+      const leaderboard = Object.values(userStats).map((user: any) => {
+        const winRate = user.totalTrades > 0 ? (user.winningTrades / user.totalTrades) * 100 : 0;
+        const avgReturn = user.entries.length > 0 ? user.totalReturn / user.entries.length : 0;
+        const returnPercentage = avgReturn; // Simplified for now
+
+        return {
+          rank: 0, // Will be set after sorting
+          userId: user.userId,
+          username: user.username,
+          avatar: user.avatar,
+          score: metric === 'TOTAL_RETURN' ? user.totalReturn :
+                 metric === 'WIN_RATE' ? winRate :
+                 metric === 'SHARPE_RATIO' ? avgReturn : // Simplified
+                 user.totalReturn,
+          scoreChange24h: 0, // Would need historical data
+          totalReturn: user.totalReturn,
+          returnPercentage,
+          winRate,
+          totalTrades: user.totalTrades,
+          sharpeRatio: avgReturn / Math.max(1, Math.abs(avgReturn)), // Simplified
+          lastUpdateTime: new Date().toISOString()
+        };
+      });
+
+      // Sort by the selected metric
+      leaderboard.sort((a, b) => b.score - a.score);
+
+      // Assign ranks and limit results
+      return leaderboard
+        .slice(0, limit)
+        .map((entry, index) => ({
+          ...entry,
+          rank: index + 1
+        }));
+
+    } catch (error: any) {
+      console.error('Error getting global leaderboard:', error);
+      return [];
+    }
   }
 
   async processScheduledActions(): Promise<{

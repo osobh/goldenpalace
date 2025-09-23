@@ -38,6 +38,77 @@ const entryService = new CompetitionEntryService(
 
 router.use(authMiddleware.authenticate);
 
+// Base route for getting competitions with query parameters
+router.get(
+  '/',
+  validationMiddleware.validateQuery(queryCompetitionsSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const { groupId, status, type, page = 1, limit = 10 } = req.query;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: 'Unauthorized'
+        });
+      }
+
+      // If groupId is provided, use group competitions endpoint
+      if (groupId) {
+        const result = await competitionService.getGroupCompetitions(
+          groupId as string,
+          Number(page),
+          Number(limit),
+          {
+            status: status as string,
+            type: type as string
+          }
+        );
+
+        return res.json({
+          success: true,
+          data: result.competitions
+        });
+      }
+
+      // If status is 'ACTIVE', use active competitions endpoint
+      if (status === 'ACTIVE') {
+        const competitions = await competitionService.getActiveCompetitions();
+        return res.json({
+          success: true,
+          data: competitions
+        });
+      }
+
+      // If status is 'PENDING', use upcoming competitions endpoint
+      if (status === 'PENDING') {
+        const competitions = await competitionService.getUpcomingCompetitions(Number(limit));
+        return res.json({
+          success: true,
+          data: competitions
+        });
+      }
+
+      // Default: return both active and pending competitions
+      const [activeCompetitions, pendingCompetitions] = await Promise.all([
+        competitionService.getActiveCompetitions(),
+        competitionService.getUpcomingCompetitions(50)
+      ]);
+      const competitions = [...activeCompetitions, ...pendingCompetitions];
+      res.json({
+        success: true,
+        data: competitions
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to get competitions'
+      });
+    }
+  }
+);
+
 router.post(
   '/',
   validationMiddleware.validate(createCompetitionSchema),
@@ -63,6 +134,100 @@ router.post(
       res.status(500).json({
         success: false,
         error: error.message || 'Failed to create competition'
+      });
+    }
+  }
+);
+
+// User statistics route
+router.get(
+  '/stats/user/:userId',
+  async (req: Request, res: Response) => {
+    try {
+      const currentUserId = (req as any).user?.id;
+      const { userId } = req.params;
+
+      if (!currentUserId) {
+        return res.status(401).json({
+          success: false,
+          error: 'Unauthorized'
+        });
+      }
+
+      const userStats = await competitionService.getUserStatistics(userId);
+
+      res.json({
+        success: true,
+        data: userStats
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to get user statistics'
+      });
+    }
+  }
+);
+
+// User competitions route
+router.get(
+  '/user/:userId',
+  async (req: Request, res: Response) => {
+    try {
+      const currentUserId = (req as any).user?.id;
+      const { userId } = req.params;
+
+      if (!currentUserId) {
+        return res.status(401).json({
+          success: false,
+          error: 'Unauthorized'
+        });
+      }
+
+      const userCompetitions = await entryService.getEntriesByUser(userId);
+
+      res.json({
+        success: true,
+        data: userCompetitions
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to get user competitions'
+      });
+    }
+  }
+);
+
+// Global leaderboard route
+router.get(
+  '/leaderboard/global',
+  async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user?.id;
+      const { period = 'all-time', metric = 'TOTAL_RETURN', limit = 10 } = req.query;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: 'Unauthorized'
+        });
+      }
+
+      const globalLeaderboard = await competitionService.getGlobalLeaderboard(
+        metric as any,
+        period as any,
+        Number(limit)
+      );
+
+      res.json({
+        success: true,
+        data: globalLeaderboard
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to get global leaderboard'
       });
     }
   }
@@ -281,7 +446,7 @@ router.get(
 
 router.get(
   '/group/:groupId',
-  validationMiddleware.validate(queryCompetitionsSchema),
+  validationMiddleware.validateQuery(queryCompetitionsSchema),
   async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user?.id;

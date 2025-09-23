@@ -11,11 +11,12 @@ export function PortfolioCard({ portfolio, onClick, isLoading = false }: Portfol
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: portfolio.currency,
+      currency: portfolio.currency || 'USD',
     }).format(amount);
   };
 
-  const formatPercentage = (percentage: number) => {
+  const formatPercentage = (percentage: number | undefined) => {
+    if (percentage === undefined || percentage === null) return '0.00%';
     return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
   };
 
@@ -143,7 +144,7 @@ export function PortfolioCard({ portfolio, onClick, isLoading = false }: Portfol
           <div>
             <span className="text-xs text-muted-foreground">Assets</span>
             <p className="text-sm font-medium text-foreground">
-              {portfolio.assets.length} asset{portfolio.assets.length !== 1 ? 's' : ''}
+              {(portfolio.assets || []).length} asset{(portfolio.assets || []).length !== 1 ? 's' : ''}
             </p>
           </div>
           <div>

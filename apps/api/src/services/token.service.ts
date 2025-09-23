@@ -10,7 +10,7 @@ interface TokenVerificationResult {
 export class TokenService {
   private readonly accessTokenSecret: string;
   private readonly refreshTokenSecret: string;
-  private readonly accessTokenExpiry = 15 * 60; // 15 minutes
+  private readonly accessTokenExpiry = 24 * 60 * 60; // 24 hours for development (was 15 minutes)
   private readonly refreshTokenExpiry = 7 * 24 * 60 * 60; // 7 days
 
   constructor() {

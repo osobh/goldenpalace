@@ -26,8 +26,8 @@ export const createCompetitionSchema = z
       .max(100, 'Competition name must not exceed 100 characters'),
     description: z.string().max(1000, 'Description must not exceed 1000 characters').optional(),
     type: z.enum(COMPETITION_TYPES),
-    startDate: z.date().min(new Date(), 'Start date must be in the future'),
-    endDate: z.date(),
+    startDate: z.coerce.date().min(new Date(), 'Start date must be in the future'),
+    endDate: z.coerce.date(),
     entryFee: z.number().min(0, 'Entry fee must be non-negative').optional(),
     prizePool: z.number().min(0, 'Prize pool must be non-negative').optional(),
     prizeDistribution: z.record(z.string(), z.number()).optional(),
@@ -50,6 +50,53 @@ export const createCompetitionSchema = z
     path: ['endDate'],
   });
 
+// Query Competitions Schema
+export const queryCompetitionsSchema = z.object({
+  groupId: z.string().cuid('Invalid group ID').optional(),
+  status: z.enum(COMPETITION_STATUSES).optional(),
+  type: z.enum(COMPETITION_TYPES).optional(),
+  page: z.coerce.number().int().min(1).default(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(10).optional(),
+});
+
+// Update Competition Schema
+export const updateCompetitionSchema = z
+  .object({
+    name: z
+      .string()
+      .min(1, 'Competition name is required')
+      .max(100, 'Competition name must not exceed 100 characters')
+      .optional(),
+    description: z.string().max(1000, 'Description must not exceed 1000 characters').optional(),
+    startDate: z.coerce.date().optional(),
+    endDate: z.coerce.date().optional(),
+    entryFee: z.number().min(0, 'Entry fee must be non-negative').optional(),
+    prizePool: z.number().min(0, 'Prize pool must be non-negative').optional(),
+    prizeDistribution: z.record(z.string(), z.number()).optional(),
+    rules: z
+      .object({
+        minTrades: z.number().int().min(1).optional(),
+        maxPositionSize: z.number().positive().optional(),
+        allowedAssets: z.array(z.string()).optional(),
+        tradingHours: z
+          .object({
+            start: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+            end: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+          })
+          .optional(),
+      })
+      .optional(),
+  })
+  .refine((data) => {
+    if (data.endDate && data.startDate) {
+      return data.endDate > data.startDate;
+    }
+    return true;
+  }, {
+    message: 'End date must be after start date',
+    path: ['endDate'],
+  });
+
 // Join Competition Schema
 export const joinCompetitionSchema = z.object({
   competitionId: z.string().cuid('Invalid competition ID'),
@@ -66,6 +113,8 @@ export const updateCompetitionEntrySchema = z.object({
 
 // Type inference
 export type CreateCompetitionInput = z.infer<typeof createCompetitionSchema>;
+export type QueryCompetitionsInput = z.infer<typeof queryCompetitionsSchema>;
+export type UpdateCompetitionInput = z.infer<typeof updateCompetitionSchema>;
 export type JoinCompetitionInput = z.infer<typeof joinCompetitionSchema>;
 export type UpdateCompetitionEntryInput = z.infer<typeof updateCompetitionEntrySchema>;
 

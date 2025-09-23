@@ -22,7 +22,7 @@ export class CompetitionEntryRepository {
   async findByUserId(userId: string): Promise<CompetitionEntry[]> {
     return prisma.competitionEntry.findMany({
       where: { userId },
-      orderBy: { joinedAt: 'desc' }
+      orderBy: { updatedAt: 'desc' }
     });
   }
 
@@ -324,8 +324,31 @@ export class CompetitionEntryRepository {
 
   async getRecentlyUpdated(limit: number = 10): Promise<CompetitionEntry[]> {
     return prisma.competitionEntry.findMany({
-      orderBy: { lastUpdated: 'desc' },
+      orderBy: { updatedAt: 'desc' },
       take: limit
+    });
+  }
+
+  async findAll(): Promise<CompetitionEntry[]> {
+    return prisma.competitionEntry.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true
+          }
+        },
+        competition: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            status: true
+          }
+        }
+      },
+      orderBy: { updatedAt: 'desc' }
     });
   }
 }

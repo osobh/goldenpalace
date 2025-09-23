@@ -3,6 +3,7 @@ import { useAuthStore } from './stores/authStore';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { PortfolioDetailPage } from './pages/PortfolioDetailPage';
 import { TradingPage } from './pages/TradingPage';
 import { ChatPage } from './pages/ChatPage';
 import { CompetitionsPage } from './pages/CompetitionsPage';
@@ -38,6 +39,7 @@ export function App() {
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="portfolio/:portfolioId" element={<PortfolioDetailPage />} />
         <Route path="trading" element={<TradingPage />} />
         <Route path="chat" element={<ChatPage />} />
         <Route path="competitions" element={<CompetitionsPage />} />
