@@ -14,6 +14,10 @@ import { tradingRoutes } from './routes/trading.routes';
 import { competitionRoutes } from './routes/competition.routes';
 import { portfolioRoutes } from './routes/portfolio.routes';
 import { riskAnalyticsRoutes } from './routes/riskAnalytics.routes';
+import { marketDataRoutes } from './routes/marketData.routes';
+
+// Import WebSocket handlers
+import { MarketDataHandler } from './websocket/marketData.handler';
 
 dotenv.config();
 
@@ -71,6 +75,7 @@ app.use('/api/trading', tradingRoutes);
 app.use('/api/competitions', competitionRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/risk-analytics', riskAnalyticsRoutes);
+app.use('/api/market-data', marketDataRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({
@@ -146,17 +151,21 @@ app.get('/api/posts', (_req, res) => {
   res.json(mockPosts);
 });
 
+// Initialize market data handler
+const marketDataHandler = new MarketDataHandler(io);
+
 io.on('connection', (socket) => {
   logger.info(`New client connected: ${socket.id}`);
 
+  // Legacy support for existing chat/trading features
   socket.on('join:trades', (userId) => {
     socket.join(`user:${userId}:trades`);
     logger.info(`Client ${socket.id} joined trades room for user ${userId}`);
   });
 
   socket.on('join:feed', () => {
-    socket.join('feed');
-    logger.info(`Client ${socket.id} joined feed room`);
+    socket.join('market:feed');
+    logger.info(`Client ${socket.id} joined market feed room`);
   });
 
   socket.on('disconnect', () => {
@@ -164,16 +173,8 @@ io.on('connection', (socket) => {
   });
 });
 
-setInterval(() => {
-  const mockPriceUpdate = {
-    symbol: 'BTC/USD',
-    price: 45000 + Math.random() * 1000 - 500,
-    change: Math.random() * 10 - 5,
-    volume: Math.random() * 1000000,
-    timestamp: new Date().toISOString()
-  };
-  io.to('feed').emit('price:update', mockPriceUpdate);
-}, 5000);
+// Market data handler now manages real-time price updates
+// Legacy setInterval removed in favor of MarketDataHandler's built-in periodic updates
 
 const PORT = process.env.PORT || 3002;
 const HOST = '0.0.0.0';
