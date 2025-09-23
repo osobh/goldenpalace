@@ -37,11 +37,11 @@ class RiskAnalyticsService {
       throw new Error('Unable to access risk analytics. The API may be unavailable.');
     }
 
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error || 'Failed to calculate risk metrics');
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to calculate risk metrics');
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Get historical risk metrics for a portfolio
@@ -60,11 +60,11 @@ class RiskAnalyticsService {
       `${this.baseUrl}/portfolio/${portfolioId}/history?${params.toString()}`
     );
 
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error || 'Failed to get historical metrics');
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to get historical metrics');
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Get latest risk metrics for a portfolio
@@ -73,11 +73,11 @@ class RiskAnalyticsService {
       `${this.baseUrl}/portfolio/${portfolioId}/latest`
     );
 
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error || 'Failed to get latest metrics');
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to get latest metrics');
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Calculate position risks for a portfolio
@@ -86,11 +86,11 @@ class RiskAnalyticsService {
       `${this.baseUrl}/portfolio/${portfolioId}/positions`
     );
 
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error || 'Failed to get position risks');
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to get position risks');
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Run stress tests
@@ -100,11 +100,11 @@ class RiskAnalyticsService {
       input
     );
 
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error || 'Failed to run stress tests');
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to run stress tests');
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Set risk limits for a portfolio
@@ -114,11 +114,11 @@ class RiskAnalyticsService {
       input
     );
 
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error || 'Failed to set risk limits');
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to set risk limits');
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Check risk limit breaches
@@ -131,11 +131,11 @@ class RiskAnalyticsService {
       allWithinLimits: boolean;
     }>>(`${this.baseUrl}/portfolio/${portfolioId}/breaches`);
 
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error || 'Failed to check risk breaches');
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to check risk breaches');
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Run Monte Carlo simulation
@@ -153,11 +153,11 @@ class RiskAnalyticsService {
       }
     );
 
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error || 'Failed to run Monte Carlo simulation');
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to run Monte Carlo simulation');
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Calculate liquidity risk
@@ -166,11 +166,11 @@ class RiskAnalyticsService {
       `${this.baseUrl}/portfolio/${portfolioId}/liquidity`
     );
 
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error || 'Failed to get liquidity risk');
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to get liquidity risk');
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Generate risk report
@@ -180,11 +180,11 @@ class RiskAnalyticsService {
       input
     );
 
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error || 'Failed to generate risk report');
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to generate risk report');
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Get risk metrics summary/aggregates
@@ -204,11 +204,11 @@ class RiskAnalyticsService {
       avgDrawdown: number;
     }>>(`${this.baseUrl}/portfolio/${portfolioId}/summary?period=${period}`);
 
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error || 'Failed to get risk summary');
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to get risk summary');
     }
 
-    return response.data.data;
+    return response.data;
   }
 
   // Convenience method to run comprehensive risk analysis

@@ -59,23 +59,36 @@ router.post(
   '/calculate',
   validationMiddleware.validate(calculateRiskSchema),
   async (req: Request, res: Response) => {
+    console.log('[RiskAnalytics Route] POST /calculate - Start');
+    console.log('[RiskAnalytics Route] Request body:', JSON.stringify(req.body, null, 2));
+
     try {
       const userId = (req as any).user?.id;
+      console.log('[RiskAnalytics Route] User ID:', userId);
 
       if (!userId) {
+        console.log('[RiskAnalytics Route] Unauthorized - no user ID');
         return res.status(401).json({
           success: false,
           error: 'Unauthorized'
         });
       }
 
+      console.log('[RiskAnalytics Route] Calling calculateRiskMetrics with:', req.body);
       const riskMetrics = await riskAnalyticsService.calculateRiskMetrics(req.body);
+      console.log('[RiskAnalytics Route] Risk metrics calculated successfully');
+      console.log('[RiskAnalytics Route] Result keys:', Object.keys(riskMetrics || {}));
 
       res.json({
         success: true,
         data: riskMetrics
       });
     } catch (error: any) {
+      console.error('[RiskAnalytics Route] Error in /calculate endpoint:');
+      console.error('[RiskAnalytics Route] Error message:', error.message);
+      console.error('[RiskAnalytics Route] Error stack:', error.stack);
+      console.error('[RiskAnalytics Route] Full error:', error);
+
       res.status(500).json({
         success: false,
         error: error.message || 'Failed to calculate risk metrics'

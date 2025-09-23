@@ -6,7 +6,7 @@ import type {
   RiskMetrics,
   PositionRisk,
   StressTestResult,
-  RiskLevel,
+  RiskAnalyticsLevel,
   TimeHorizon,
   ConfidenceLevel,
   CalculateRiskInput,
@@ -26,34 +26,62 @@ export class RiskAnalyticsService {
   ) {}
 
   async calculateRiskMetrics(input: CalculateRiskInput): Promise<RiskMetrics> {
-    const portfolio = await this.portfolioRepository.findById(input.portfolioId);
-    if (!portfolio) throw new Error('Portfolio not found');
+    console.log('[RiskAnalytics Service] calculateRiskMetrics - Start');
+    console.log('[RiskAnalytics Service] Input:', JSON.stringify(input, null, 2));
 
+    console.log('[RiskAnalytics Service] Finding portfolio by ID:', input.portfolioId);
+    const portfolio = await this.portfolioRepository.findById(input.portfolioId);
+    console.log('[RiskAnalytics Service] Portfolio found:', portfolio ? 'Yes' : 'No');
+    if (!portfolio) {
+      console.error('[RiskAnalytics Service] Portfolio not found, throwing error');
+      throw new Error('Portfolio not found');
+    }
+    console.log('[RiskAnalytics Service] Portfolio currentValue:', portfolio.currentValue);
+
+    console.log('[RiskAnalytics Service] Finding assets for portfolio');
     const assets = await this.assetRepository.findByPortfolioId(input.portfolioId);
+    console.log('[RiskAnalytics Service] Assets found:', assets.length);
+
+    console.log('[RiskAnalytics Service] Getting returns');
     const returns = await this.portfolioRepository.getReturns?.(input.portfolioId, input.timeHorizon) ||
                     this.generateReturns(portfolio, 30);
+    console.log('[RiskAnalytics Service] Returns length:', returns.length);
 
     // Calculate VaR using historical simulation
+    console.log('[RiskAnalytics Service] Calculating VaR');
     const sortedReturns = [...returns].sort((a, b) => a - b);
     const varIndex = Math.floor(returns.length * (1 - input.confidenceLevel));
-    const valueAtRisk = Math.abs(sortedReturns[varIndex] * portfolio.totalValue);
+    console.log('[RiskAnalytics Service] VaR index:', varIndex, 'of', returns.length);
+    const portfolioValue = Number(portfolio.currentValue);
+    console.log('[RiskAnalytics Service] Portfolio value for calculations:', portfolioValue);
+    const valueAtRisk = Math.abs(sortedReturns[varIndex] * portfolioValue);
+    console.log('[RiskAnalytics Service] Value at Risk:', valueAtRisk);
 
     // Calculate CVaR (Expected Shortfall)
+    console.log('[RiskAnalytics Service] Calculating CVaR');
     const tailReturns = sortedReturns.slice(0, varIndex + 1);
-    const conditionalVaR = Math.abs(
-      tailReturns.reduce((a, b) => a + b, 0) / tailReturns.length * portfolio.totalValue
-    );
+    console.log('[RiskAnalytics Service] Tail returns length:', tailReturns.length);
+    const conditionalVaR = tailReturns.length > 0 ? Math.abs(
+      tailReturns.reduce((a, b) => a + b, 0) / tailReturns.length * portfolioValue
+    ) : 0;
+    console.log('[RiskAnalytics Service] Conditional VaR:', conditionalVaR);
 
     // Calculate volatility
-    const avgReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
-    const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
+    console.log('[RiskAnalytics Service] Calculating volatility');
+    const avgReturn = returns.length > 0 ? returns.reduce((a, b) => a + b, 0) / returns.length : 0;
+    console.log('[RiskAnalytics Service] Average return:', avgReturn);
+    const variance = returns.length > 0 ? returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length : 0;
     const volatility = Math.sqrt(variance);
     const annualizedVolatility = volatility * Math.sqrt(252);
+    console.log('[RiskAnalytics Service] Volatility:', volatility, 'Annualized:', annualizedVolatility);
 
     // Calculate Sharpe Ratio
+    console.log('[RiskAnalytics Service] Calculating Sharpe Ratio');
     const riskFreeRate = await this.marketDataService.getRiskFreeRate();
+    console.log('[RiskAnalytics Service] Risk-free rate:', riskFreeRate);
     const excessReturn = avgReturn * 252 - riskFreeRate;
-    const sharpeRatio = excessReturn / annualizedVolatility;
+    const sharpeRatio = annualizedVolatility > 0 ? excessReturn / annualizedVolatility : 0;
+    console.log('[RiskAnalytics Service] Sharpe Ratio:', sharpeRatio);
 
     // Calculate Sortino Ratio (using downside volatility)
     const downsideReturns = returns.filter(r => r < 0);
@@ -63,26 +91,62 @@ export class RiskAnalyticsService {
     const sortinoRatio = downsideVolatility > 0 ? excessReturn / downsideVolatility : 0;
 
     // Calculate maximum drawdown
-    const { maxDrawdown, currentDrawdown } = await this.calculateDrawdown(input.portfolioId);
+    console.log('[RiskAnalytics Service] Calculating drawdown');
+    let maxDrawdown = 0, currentDrawdown = 0;
+    try {
+      const drawdownResult = await this.calculateDrawdown(input.portfolioId);
+      maxDrawdown = drawdownResult.maxDrawdown;
+      currentDrawdown = drawdownResult.currentDrawdown;
+      console.log('[RiskAnalytics Service] Drawdown calculated:', { maxDrawdown, currentDrawdown });
+    } catch (error) {
+      console.error('[RiskAnalytics Service] Error calculating drawdown:', error);
+      console.log('[RiskAnalytics Service] Using default drawdown values');
+    }
 
     // Calculate Beta and Alpha
-    const marketReturn = await this.marketDataService.getMarketReturn();
-    const beta = this.calculateBeta(returns, marketReturn);
-    const alpha = avgReturn * 252 - (riskFreeRate + beta * (marketReturn - riskFreeRate));
+    console.log('[RiskAnalytics Service] Calculating Beta and Alpha');
+    let beta = 1, alpha = 0;
+    try {
+      const marketReturn = await this.marketDataService.getMarketReturn();
+      console.log('[RiskAnalytics Service] Market return:', marketReturn);
+      beta = this.calculateBeta(returns, marketReturn);
+      alpha = avgReturn * 252 - (riskFreeRate + beta * (marketReturn - riskFreeRate));
+      console.log('[RiskAnalytics Service] Beta:', beta, 'Alpha:', alpha);
+    } catch (error) {
+      console.error('[RiskAnalytics Service] Error calculating Beta/Alpha:', error);
+      console.log('[RiskAnalytics Service] Using default Beta/Alpha values');
+    }
 
     // Get correlations if requested
-    const correlations = input.includeCorrelations ?
-      await this.marketDataService.getCorrelations(assets.map(a => a.symbol)) :
-      {};
+    console.log('[RiskAnalytics Service] Getting correlations, requested:', input.includeCorrelations);
+    let correlations = {};
+    try {
+      correlations = input.includeCorrelations && assets.length > 0 ?
+        await this.marketDataService.getCorrelations(assets.map(a => a.symbol)) :
+        {};
+      console.log('[RiskAnalytics Service] Correlations fetched');
+    } catch (error) {
+      console.error('[RiskAnalytics Service] Error getting correlations:', error);
+      correlations = {};
+    }
 
     // Determine risk level
-    const riskScore = this.calculateRiskScore({
-      volatility: annualizedVolatility,
-      sharpeRatio,
-      maxDrawdown,
-      valueAtRisk
-    });
-    const riskLevel = this.determineRiskLevel(riskScore);
+    console.log('[RiskAnalytics Service] Determining risk level');
+    let riskScore = 50;
+    let riskLevel: RiskAnalyticsLevel = 'MEDIUM';
+    try {
+      riskScore = this.calculateRiskScore({
+        volatility: annualizedVolatility,
+        sharpeRatio,
+        maxDrawdown,
+        valueAtRisk
+      });
+      riskLevel = this.determineRiskLevel(riskScore);
+      console.log('[RiskAnalytics Service] Risk score:', riskScore, 'Level:', riskLevel);
+    } catch (error) {
+      console.error('[RiskAnalytics Service] Error calculating risk level:', error);
+      console.log('[RiskAnalytics Service] Using default risk level');
+    }
 
     const metrics: RiskMetrics = {
       portfolioId: input.portfolioId,
@@ -114,7 +178,17 @@ export class RiskAnalyticsService {
       riskScore
     };
 
-    await this.riskMetricsRepository.saveMetrics(metrics);
+    console.log('[RiskAnalytics Service] Saving metrics to repository');
+    try {
+      await this.riskMetricsRepository.saveMetrics(metrics);
+      console.log('[RiskAnalytics Service] Metrics saved successfully');
+    } catch (error) {
+      console.error('[RiskAnalytics Service] Error saving metrics:', error);
+      // Continue even if saving fails
+    }
+
+    console.log('[RiskAnalytics Service] calculateRiskMetrics - Complete');
+    console.log('[RiskAnalytics Service] Returning metrics for portfolio:', input.portfolioId);
     return metrics;
   }
 
@@ -127,14 +201,14 @@ export class RiskAnalyticsService {
 
     return assets.map(asset => {
       const volatility = volatilities[asset.symbol] || 0.2;
-      const exposure = asset.totalValue;
-      const percentageOfPortfolio = (exposure / portfolio.totalValue) * 100;
+      const exposure = Number(asset.marketValue || 0);
+      const percentageOfPortfolio = (exposure / Number(portfolio.currentValue)) * 100;
 
       // Individual VaR at 95% confidence
       const individualVaR = exposure * volatility * 1.645 / Math.sqrt(252);
 
       // Marginal VaR approximation
-      const marginalVaR = individualVaR * (exposure / portfolio.totalValue);
+      const marginalVaR = individualVaR * (exposure / Number(portfolio.currentValue));
 
       // Component VaR
       const componentVaR = marginalVaR * percentageOfPortfolio / 100;
@@ -172,33 +246,33 @@ export class RiskAnalyticsService {
       const assetImpacts = assets.map(asset => {
         const stressedPrice = asset.currentPrice * (1 + scenario.marketChange / 100);
         const stressedValue = stressedPrice * asset.quantity;
-        const loss = asset.totalValue - stressedValue;
+        const loss = Number(asset.marketValue || 0) - stressedValue;
 
         return {
           symbol: asset.symbol,
-          currentValue: asset.totalValue,
+          currentValue: Number(asset.marketValue || 0),
           stressedValue,
           loss,
-          lossPercentage: (loss / asset.totalValue) * 100
+          lossPercentage: (loss / Number(asset.marketValue || 1)) * 100
         };
       });
 
       const totalLoss = assetImpacts.reduce((sum, impact) => sum + impact.loss, 0);
       const portfolioLoss = totalLoss;
-      const lossPercentage = (portfolioLoss / portfolio.totalValue) * 100;
+      const lossPercentage = (portfolioLoss / Number(portfolio.currentValue)) * 100;
 
       // Calculate stressed metrics
       const stressedVolatility = 0.3 * scenario.volatilityMultiplier;
-      const stressedVaR = portfolio.totalValue * stressedVolatility * 1.645 / Math.sqrt(252);
+      const stressedVaR = Number(portfolio.currentValue) * stressedVolatility * 1.645 / Math.sqrt(252);
 
-      const severity: RiskLevel =
+      const severity: RiskAnalyticsLevel =
         lossPercentage > 30 ? 'EXTREME' :
         lossPercentage > 20 ? 'HIGH' :
         lossPercentage > 10 ? 'MEDIUM' : 'LOW';
 
       results.push({
         scenarioName: scenario.name,
-        portfolioValue: portfolio.totalValue - portfolioLoss,
+        portfolioValue: Number(portfolio.currentValue) - portfolioLoss,
         portfolioLoss,
         lossPercentage: Math.abs(lossPercentage),
         assetImpacts,
@@ -311,7 +385,7 @@ export class RiskAnalyticsService {
     const paths: any[] = [];
 
     for (let sim = 0; sim < numberOfSimulations; sim++) {
-      let value = portfolio.totalValue;
+      let value = Number(portfolio.currentValue);
       const path = [value];
 
       // Simulate daily returns for the time horizon
@@ -342,8 +416,8 @@ export class RiskAnalyticsService {
       percentiles[p] = simResults[Math.floor(simResults.length * p / 100)];
     });
 
-    const probabilityOfLoss = simResults.filter(v => v < portfolio.totalValue).length / numberOfSimulations;
-    const expectedReturn = (simResults.reduce((a, b) => a + b, 0) / numberOfSimulations - portfolio.totalValue) / portfolio.totalValue;
+    const probabilityOfLoss = simResults.filter(v => v < Number(portfolio.currentValue)).length / numberOfSimulations;
+    const expectedReturn = (simResults.reduce((a, b) => a + b, 0) / numberOfSimulations - Number(portfolio.currentValue)) / Number(portfolio.currentValue);
 
     return {
       portfolioId,
@@ -381,13 +455,13 @@ export class RiskAnalyticsService {
 
     const byAsset = assets.map(asset => {
       const avgDailyVolume = volumes[asset.symbol] || 1000000;
-      const daysToLiquidate = asset.totalValue / (avgDailyVolume * 0.1); // 10% of daily volume
-      const marketImpact = Math.min(0.05, asset.totalValue / avgDailyVolume);
+      const daysToLiquidate = Number(asset.marketValue || 0) / (avgDailyVolume * 0.1); // 10% of daily volume
+      const marketImpact = Math.min(0.05, Number(asset.marketValue || 0) / avgDailyVolume);
       const liquidityScore = Math.max(0, Math.min(100, 100 - daysToLiquidate * 10));
 
       return {
         symbol: asset.symbol,
-        value: asset.totalValue,
+        value: Number(asset.marketValue || 0),
         averageDailyVolume: avgDailyVolume,
         daysToLiquidate,
         marketImpact,
@@ -395,7 +469,7 @@ export class RiskAnalyticsService {
       };
     });
 
-    const totalValue = portfolio.totalValue;
+    const totalValue = Number(portfolio.currentValue);
     const immediatelyLiquid = byAsset.filter(a => a.daysToLiquidate < 0.1).reduce((sum, a) => sum + a.value, 0);
     const liquidWithin1Day = byAsset.filter(a => a.daysToLiquidate < 1).reduce((sum, a) => sum + a.value, 0);
     const liquidWithin1Week = byAsset.filter(a => a.daysToLiquidate < 7).reduce((sum, a) => sum + a.value, 0);
@@ -461,7 +535,7 @@ export class RiskAnalyticsService {
     if (input.reportType === 'REGULATORY') {
       const returns = await this.portfolioRepository.getReturns?.(input.portfolioId, '1M') ||
                       this.generateReturns(portfolio, 100);
-      const violations = returns.filter(r => r < -metrics.valueAtRisk / portfolio.totalValue).length;
+      const violations = returns.filter(r => r < -metrics.valueAtRisk / Number(portfolio.currentValue)).length;
       const expectedViolations = returns.length * (1 - 0.95);
 
       varBacktest = {
@@ -562,7 +636,7 @@ export class RiskAnalyticsService {
     return Math.min(100, volatilityScore + varScore + drawdownScore + sharpeScore);
   }
 
-  private determineRiskLevel(riskScore: number): RiskLevel {
+  private determineRiskLevel(riskScore: number): RiskAnalyticsLevel {
     if (riskScore < 25) return 'LOW';
     if (riskScore < 50) return 'MEDIUM';
     if (riskScore < 75) return 'HIGH';
